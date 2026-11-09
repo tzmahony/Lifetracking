@@ -15,15 +15,7 @@ export default function Notes({ notes, setNotes }: Props) {
   const [activeTag, setActiveTag] = useState<string | null>(null);
 
   const addNote = () => {
-    const note: Note = {
-      id: generateId(),
-      title: 'Untitled',
-      content: '',
-      tags: [],
-      updatedAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-      pinned: false,
-    };
+    const note: Note = { id: generateId(), title: 'Untitled', content: '', tags: [], updatedAt: new Date().toISOString(), createdAt: new Date().toISOString(), pinned: false };
     setNotes(prev => [note, ...prev]);
     setSelected(note);
   };
@@ -33,108 +25,101 @@ export default function Notes({ notes, setNotes }: Props) {
     setNotes(prev => prev.map(n => n.id === id ? { ...n, ...updated } : n));
     setSelected(prev => prev?.id === id ? { ...prev, ...updated } : prev);
   };
-
-  const removeNote = (id: string) => {
-    setNotes(prev => prev.filter(n => n.id !== id));
-    if (selected?.id === id) setSelected(null);
-  };
+  const removeNote = (id: string) => { setNotes(prev => prev.filter(n => n.id !== id)); if (selected?.id === id) setSelected(null); };
 
   const allTags = [...new Set(notes.flatMap(n => n.tags))];
-
   const filtered = notes
-    .filter(n => {
-      const q = search.toLowerCase();
-      return (!q || n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q))
-        && (!activeTag || n.tags.includes(activeTag));
-    })
-    .sort((a, b) => {
-      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-      return b.updatedAt.localeCompare(a.updatedAt);
-    });
+    .filter(n => { const q = search.toLowerCase(); return (!q || n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q)) && (!activeTag || n.tags.includes(activeTag)); })
+    .sort((a, b) => { if (a.pinned !== b.pinned) return a.pinned ? -1 : 1; return b.updatedAt.localeCompare(a.updatedAt); });
 
   return (
-    <div className="flex gap-4 h-[calc(100vh-220px)] min-h-[400px]">
-      {/* Sidebar */}
-      <div className="w-64 flex-shrink-0 flex flex-col gap-3">
-        <div className="flex gap-2">
-          <div className="flex-1 relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search..." className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-sm outline-none focus:border-indigo-500 transition-colors" />
+    <div style={{ display: 'flex', gap: '0', height: 'calc(100vh - 100px)', minHeight: '500px', border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
+      {/* Left panel — note list */}
+      <div style={{ width: '220px', flexShrink: 0, borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', background: 'var(--bg-layer1)' }}>
+        {/* Search + new */}
+        <div style={{ padding: '10px', borderBottom: '1px solid var(--border)', display: 'flex', gap: '6px' }}>
+          <div style={{ flex: 1, position: 'relative' }}>
+            <Search size={12} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…" style={{ width: '100%', paddingLeft: '26px', paddingRight: '8px', paddingTop: '5px', paddingBottom: '5px', background: 'var(--bg-layer2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', color: 'var(--text-primary)', fontSize: '12px', outline: 'none', boxSizing: 'border-box' }} />
           </div>
-          <button onClick={addNote} className="p-2 bg-indigo-500 hover:bg-indigo-600 rounded-xl transition-colors">
-            <Plus size={16} />
+          <button onClick={addNote} style={{ padding: '5px 8px', background: 'var(--accent)', border: 'none', borderRadius: 'var(--radius)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            <Plus size={14} />
           </button>
         </div>
 
+        {/* Tags */}
         {allTags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
+          <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
             {allTags.map(tag => (
-              <button key={tag} onClick={() => setActiveTag(activeTag === tag ? null : tag)}
-                className={`text-xs px-2 py-1 rounded-full transition-colors ${activeTag === tag ? 'bg-indigo-500' : 'bg-white/5 hover:bg-white/10'}`}>
-                #{tag}
-              </button>
+              <button key={tag} onClick={() => setActiveTag(activeTag === tag ? null : tag)} style={{
+                fontSize: '10px', padding: '2px 7px', borderRadius: '99px', cursor: 'pointer',
+                border: '1px solid var(--border)', background: activeTag === tag ? 'var(--accent)' : 'transparent',
+                color: activeTag === tag ? '#fff' : 'var(--text-tertiary)', fontWeight: 600,
+              }}>#{tag}</button>
             ))}
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto space-y-1.5">
+        {/* Note list */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
           {filtered.length === 0 && (
-            <div className="text-center py-8 text-gray-500 text-sm">No notes yet</div>
+            <div style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: 'var(--text-disabled)' }}>No notes yet</div>
           )}
-          {filtered.map(note => (
-            <button key={note.id} onClick={() => setSelected(note)}
-              className={`w-full text-left p-3 rounded-xl transition-all group ${selected?.id === note.id ? 'bg-indigo-500/20 border border-indigo-500/30' : 'hover:bg-white/5 border border-transparent'}`}>
-              <div className="flex items-center gap-1.5 mb-1">
-                {note.pinned && <Pin size={10} className="text-amber-400 flex-shrink-0" />}
-                <span className="text-sm font-medium truncate">{note.title || 'Untitled'}</span>
+          {filtered.map((note, i) => (
+            <button key={note.id} onClick={() => setSelected(note)} style={{
+              width: '100%', textAlign: 'left', padding: '10px 12px',
+              borderBottom: i < filtered.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+              background: selected?.id === note.id ? 'var(--accent-subtle)' : 'transparent',
+              borderLeft: selected?.id === note.id ? '2px solid var(--accent)' : '2px solid transparent',
+              cursor: 'pointer', display: 'block',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '3px' }}>
+                {note.pinned && <Pin size={9} style={{ color: 'var(--warning)', flexShrink: 0 }} />}
+                <span style={{ fontSize: '12px', fontWeight: 600, color: selected?.id === note.id ? 'var(--accent)' : 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {note.title || 'Untitled'}
+                </span>
               </div>
-              <p className="text-xs text-gray-500 line-clamp-2">{note.content}</p>
-              <div className="text-xs text-gray-600 mt-1">{format(new Date(note.updatedAt), 'MMM d')}</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{note.content}</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-disabled)', marginTop: '4px' }}>{format(new Date(note.updatedAt), 'MMM d')}</div>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Editor */}
+      {/* Right panel — editor */}
       {selected ? (
-        <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl flex flex-col overflow-hidden">
-          <div className="flex items-center gap-3 p-4 border-b border-white/10">
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-layer1)', overflow: 'hidden' }}>
+          {/* Title bar */}
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <input value={selected.title} onChange={e => updateNote(selected.id, { title: e.target.value })}
-              className="flex-1 bg-transparent text-xl font-bold outline-none placeholder:text-gray-600"
-              placeholder="Title..." />
-            <button onClick={() => updateNote(selected.id, { pinned: !selected.pinned })}
-              className={`p-2 rounded-xl transition-colors ${selected.pinned ? 'text-amber-400 bg-amber-400/10' : 'text-gray-500 hover:bg-white/10'}`}>
-              <Pin size={16} />
+              style={{ flex: 1, background: 'transparent', border: 'none', fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', outline: 'none' }} placeholder="Title…" />
+            <button onClick={() => updateNote(selected.id, { pinned: !selected.pinned })} style={{ padding: '4px', background: 'transparent', border: 'none', cursor: 'pointer', color: selected.pinned ? 'var(--warning)' : 'var(--text-disabled)' }}>
+              <Pin size={14} />
             </button>
-            <button onClick={() => removeNote(selected.id)}
-              className="p-2 hover:bg-red-500/20 rounded-xl text-gray-500 hover:text-red-400 transition-colors">
-              <X size={16} />
+            <button onClick={() => removeNote(selected.id)} style={{ padding: '4px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-disabled)' }}>
+              <X size={14} />
             </button>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 border-b border-white/5">
-            <Tag size={12} className="text-gray-500" />
-            <input
-              value={selected.tags.join(', ')}
-              onChange={e => updateNote(selected.id, { tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })}
-              placeholder="Add tags (comma separated)..."
-              className="bg-transparent text-xs text-gray-400 outline-none flex-1 placeholder:text-gray-600" />
+          {/* Tags bar */}
+          <div style={{ padding: '7px 16px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Tag size={11} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+            <input value={selected.tags.join(', ')} onChange={e => updateNote(selected.id, { tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })}
+              placeholder="Add tags (comma separated)…" style={{ background: 'transparent', border: 'none', fontSize: '12px', color: 'var(--text-secondary)', outline: 'none', flex: 1 }} />
           </div>
-          <textarea
-            value={selected.content}
-            onChange={e => updateNote(selected.id, { content: e.target.value })}
-            placeholder="Start writing..."
-            className="flex-1 bg-transparent p-4 outline-none resize-none text-sm text-gray-200 leading-relaxed placeholder:text-gray-600"
-          />
-          <div className="px-4 py-2 text-xs text-gray-600 border-t border-white/5">
-            Last edited {format(new Date(selected.updatedAt), 'MMM d, yyyy HH:mm')} · {selected.content.split(/\s+/).filter(Boolean).length} words
+          {/* Body */}
+          <textarea value={selected.content} onChange={e => updateNote(selected.id, { content: e.target.value })}
+            placeholder="Start writing…" style={{ flex: 1, background: 'transparent', border: 'none', padding: '16px', color: 'var(--text-primary)', fontSize: '13px', lineHeight: '1.7', outline: 'none', resize: 'none', fontFamily: 'inherit' }} />
+          {/* Footer */}
+          <div style={{ padding: '7px 16px', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-disabled)' }}>
+            <span>Last edited {format(new Date(selected.updatedAt), 'MMM d, yyyy HH:mm')}</span>
+            <span>{selected.content.split(/\s+/).filter(Boolean).length} words</span>
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center text-gray-600">
-          <div className="text-center">
-            <div className="text-4xl mb-3">📝</div>
-            <p>Select a note or create one</p>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-layer1)' }}>
+          <div style={{ textAlign: 'center', color: 'var(--text-disabled)' }}>
+            <div style={{ fontSize: '32px', marginBottom: '8px' }}>📝</div>
+            <div style={{ fontSize: '13px' }}>Select a note or create one</div>
           </div>
         </div>
       )}

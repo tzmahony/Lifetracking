@@ -2,21 +2,26 @@ import { useState } from 'react';
 import {
   format, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   addDays, addMonths, subMonths, isSameDay, isSameMonth, isToday,
-  parseISO, addWeeks, subWeeks, startOfWeek as startOfWk,
+  parseISO, addWeeks, subWeeks,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus, X, Clock } from 'lucide-react';
 import type { CalendarEvent } from '../types';
 import { generateId } from '../store';
 
-const EVENT_COLORS = [
-  '#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444',
-];
+const EVENT_COLORS = ['#2680eb', '#e34850', '#e68619', '#2d9d78', '#8e51c2', '#d4380d', '#0d7377'];
+
+const btn = (variant: 'primary' | 'secondary' | 'ghost' | 'danger' = 'ghost', extra = '') =>
+  `inline-flex items-center justify-center gap-1.5 cursor-pointer transition-all ${extra}` +
+  (variant === 'primary'
+    ? ' text-white font-medium'
+    : variant === 'danger'
+    ? ' font-medium'
+    : '');
 
 interface Props {
   events: CalendarEvent[];
   setEvents: (e: CalendarEvent[] | ((prev: CalendarEvent[]) => CalendarEvent[])) => void;
 }
-
 type View = 'month' | 'week';
 
 export default function Calendar({ events, setEvents }: Props) {
@@ -31,107 +36,112 @@ export default function Calendar({ events, setEvents }: Props) {
   const next = () => view === 'month' ? setCurrent(addMonths(current, 1)) : setCurrent(addWeeks(current, 1));
 
   const openNew = (date: Date) => {
-    setSelectedDate(date);
-    setEditing(null);
+    setSelectedDate(date); setEditing(null);
     setForm({ title: '', startTime: '', endTime: '', color: EVENT_COLORS[0], description: '' });
     setShowForm(true);
   };
-
   const openEdit = (e: CalendarEvent, ev: React.MouseEvent) => {
-    ev.stopPropagation();
-    setEditing(e);
-    setSelectedDate(parseISO(e.date));
+    ev.stopPropagation(); setEditing(e); setSelectedDate(parseISO(e.date));
     setForm({ title: e.title, startTime: e.startTime || '', endTime: e.endTime || '', color: e.color, description: e.description || '' });
     setShowForm(true);
   };
-
   const save = () => {
     if (!form.title.trim() || !selectedDate) return;
     if (editing) {
-      setEvents(prev => prev.map(e => e.id === editing.id
-        ? { ...e, ...form, date: format(selectedDate, 'yyyy-MM-dd') } : e));
+      setEvents(prev => prev.map(e => e.id === editing.id ? { ...e, ...form, date: format(selectedDate, 'yyyy-MM-dd') } : e));
     } else {
-      setEvents(prev => [...prev, {
-        id: generateId(),
-        date: format(selectedDate, 'yyyy-MM-dd'),
-        ...form,
-      }]);
+      setEvents(prev => [...prev, { id: generateId(), date: format(selectedDate, 'yyyy-MM-dd'), ...form }]);
     }
     setShowForm(false);
   };
-
   const deleteEvent = (id: string) => setEvents(prev => prev.filter(e => e.id !== id));
-
   const eventsOn = (d: Date) => events.filter(e => isSameDay(parseISO(e.date), d));
 
-  // Month grid
   const monthStart = startOfMonth(current);
-  const monthEnd = endOfMonth(current);
   const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
-  const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
-
+  const gridEnd = endOfWeek(endOfMonth(current), { weekStartsOn: 1 });
   const days: Date[] = [];
-  let d = gridStart;
-  while (d <= gridEnd) { days.push(d); d = addDays(d, 1); }
+  let d = gridStart; while (d <= gridEnd) { days.push(d); d = addDays(d, 1); }
 
-  // Week view
-  const weekStart = startOfWk(current, { weekStartsOn: 1 });
+  const weekStart = startOfWeek(current, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
+  const s = {
+    toolbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' } as React.CSSProperties,
+    iconBtn: { padding: '4px', border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: 'var(--bg-layer1)', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' } as React.CSSProperties,
+    pill: (active: boolean) => ({ padding: '3px 10px', fontSize: '12px', border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: active ? 'var(--accent)' : 'var(--bg-layer1)', color: active ? '#fff' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: active ? 600 : 400 }) as React.CSSProperties,
+    input: { width: '100%', background: 'var(--bg-layer2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '6px 10px', color: 'var(--text-primary)', outline: 'none', fontSize: '13px' } as React.CSSProperties,
+    label: { fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '4px', display: 'block', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 600 },
+  };
+
   return (
-    <div className="flex flex-col h-full gap-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={prev} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
-            <ChevronLeft size={20} />
-          </button>
-          <h2 className="text-xl font-bold min-w-[160px] text-center">
-            {view === 'month' ? format(current, 'MMMM yyyy') : `Week of ${format(weekStart, 'MMM d, yyyy')}`}
-          </h2>
-          <button onClick={next} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
-            <ChevronRight size={20} />
-          </button>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+      {/* Toolbar */}
+      <div style={s.toolbar}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button style={s.iconBtn} onClick={prev}><ChevronLeft size={14} /></button>
+          <span style={{ fontSize: '15px', fontWeight: 600, minWidth: '170px', textAlign: 'center', color: 'var(--text-primary)' }}>
+            {view === 'month' ? format(current, 'MMMM yyyy') : `Week of ${format(weekStart, 'MMM d')}`}
+          </span>
+          <button style={s.iconBtn} onClick={next}><ChevronRight size={14} /></button>
+          <button style={{ ...s.iconBtn, padding: '3px 10px', fontSize: '12px', marginLeft: '4px' }} onClick={() => setCurrent(new Date())}>Today</button>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => setCurrent(new Date())} className="px-3 py-1.5 text-sm bg-white/10 hover:bg-white/20 rounded-lg transition-colors">Today</button>
+        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
           {(['month', 'week'] as View[]).map(v => (
-            <button key={v} onClick={() => setView(v)}
-              className={`px-3 py-1.5 text-sm rounded-lg capitalize transition-colors ${view === v ? 'bg-indigo-500' : 'bg-white/10 hover:bg-white/20'}`}>
-              {v}
+            <button key={v} style={s.pill(view === v)} onClick={() => setView(v)}
+              onMouseEnter={e => { if (view !== v) (e.currentTarget as HTMLElement).style.background = 'var(--bg-layer2)'; }}
+              onMouseLeave={e => { if (view !== v) (e.currentTarget as HTMLElement).style.background = 'var(--bg-layer1)'; }}>
+              {v.charAt(0).toUpperCase() + v.slice(1)}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Month View */}
+      {/* Month view */}
       {view === 'month' && (
-        <div className="flex-1 overflow-auto">
-          <div className="grid grid-cols-7 gap-px bg-white/5 rounded-2xl overflow-hidden">
-            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
-              <div key={d} className="bg-[#1a1a2e] p-2 text-center text-xs font-semibold text-gray-400">{d}</div>
+        <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
+          {/* Day headers */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderBottom: '1px solid var(--border)', background: 'var(--bg-layer1)' }}>
+            {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
+              <div key={d} style={{ padding: '7px 10px', fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', borderRight: '1px solid var(--border-subtle)' }}>{d}</div>
             ))}
-            {days.map(day => {
+          </div>
+          {/* Day grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)' }}>
+            {days.map((day, i) => {
               const evs = eventsOn(day);
               const faded = !isSameMonth(day, current);
+              const today = isToday(day);
               return (
-                <div key={day.toISOString()}
-                  onClick={() => openNew(day)}
-                  className={`bg-[#1a1a2e] min-h-[90px] p-2 cursor-pointer hover:bg-white/5 transition-colors group ${faded ? 'opacity-30' : ''}`}>
-                  <span className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full
-                    ${isToday(day) ? 'bg-indigo-500 text-white' : 'text-gray-300 group-hover:bg-white/10'}`}>
-                    {format(day, 'd')}
-                  </span>
-                  <div className="mt-1 space-y-1">
+                <div key={day.toISOString()} onClick={() => openNew(day)} style={{
+                  minHeight: '88px', padding: '6px', cursor: 'pointer',
+                  background: faded ? 'var(--bg-base)' : 'var(--bg-layer1)',
+                  borderRight: (i + 1) % 7 !== 0 ? '1px solid var(--border-subtle)' : 'none',
+                  borderBottom: i < days.length - 7 ? '1px solid var(--border-subtle)' : 'none',
+                  transition: 'background 0.1s',
+                }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-layer2)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = faded ? 'var(--bg-base)' : 'var(--bg-layer1)'; }}>
+                  <div style={{
+                    width: '22px', height: '22px', borderRadius: today ? '50%' : 'var(--radius-sm)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '12px', fontWeight: today ? 700 : 400,
+                    color: today ? '#fff' : faded ? 'var(--text-disabled)' : 'var(--text-secondary)',
+                    background: today ? 'var(--accent)' : 'transparent',
+                  }}>{format(day, 'd')}</div>
+                  <div style={{ marginTop: '3px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     {evs.slice(0, 3).map(e => (
-                      <div key={e.id} onClick={ev => openEdit(e, ev)}
-                        className="text-xs px-2 py-0.5 rounded-md truncate cursor-pointer hover:brightness-110"
-                        style={{ backgroundColor: e.color + '33', color: e.color, borderLeft: `3px solid ${e.color}` }}>
-                        {e.startTime && <span className="opacity-70 mr-1">{e.startTime}</span>}
-                        {e.title}
+                      <div key={e.id} onClick={ev => openEdit(e, ev)} style={{
+                        fontSize: '11px', padding: '1px 5px', borderRadius: '2px',
+                        background: e.color + '22', color: e.color,
+                        borderLeft: `2px solid ${e.color}`,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        cursor: 'pointer',
+                      }}>
+                        {e.startTime && <span style={{ opacity: 0.7, marginRight: '3px' }}>{e.startTime}</span>}{e.title}
                       </div>
                     ))}
-                    {evs.length > 3 && <div className="text-xs text-gray-500">+{evs.length - 3} more</div>}
+                    {evs.length > 3 && <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', paddingLeft: '5px' }}>+{evs.length - 3}</div>}
                   </div>
                 </div>
               );
@@ -140,34 +150,41 @@ export default function Calendar({ events, setEvents }: Props) {
         </div>
       )}
 
-      {/* Week View */}
+      {/* Week view */}
       {view === 'week' && (
-        <div className="flex-1 overflow-auto">
-          <div className="grid grid-cols-7 gap-2">
-            {weekDays.map(day => {
+        <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)' }}>
+            {weekDays.map((day, i) => {
               const evs = eventsOn(day);
+              const today = isToday(day);
               return (
-                <div key={day.toISOString()} className="flex flex-col gap-1">
-                  <div className={`text-center p-2 rounded-xl ${isToday(day) ? 'bg-indigo-500' : 'bg-white/5'}`}>
-                    <div className="text-xs text-gray-400">{format(day, 'EEE')}</div>
-                    <div className="text-lg font-bold">{format(day, 'd')}</div>
+                <div key={day.toISOString()} style={{ borderRight: i < 6 ? '1px solid var(--border-subtle)' : 'none' }}>
+                  <div style={{
+                    padding: '10px', textAlign: 'center', borderBottom: '1px solid var(--border)',
+                    background: today ? 'var(--accent-subtle)' : 'var(--bg-layer1)',
+                  }}>
+                    <div style={{ fontSize: '11px', color: today ? 'var(--accent)' : 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{format(day, 'EEE')}</div>
+                    <div style={{ fontSize: '20px', fontWeight: 300, color: today ? 'var(--accent)' : 'var(--text-primary)' }}>{format(day, 'd')}</div>
                   </div>
-                  <div className="space-y-1 cursor-pointer" onClick={() => openNew(day)}>
+                  <div style={{ padding: '6px', minHeight: '120px', background: 'var(--bg-layer1)', cursor: 'pointer' }}
+                    onClick={() => openNew(day)}>
                     {evs.map(e => (
-                      <div key={e.id} onClick={ev => openEdit(e, ev)}
-                        className="p-2 rounded-lg text-sm hover:brightness-110 transition-all"
-                        style={{ backgroundColor: e.color + '22', borderLeft: `3px solid ${e.color}` }}>
-                        <div className="font-medium" style={{ color: e.color }}>{e.title}</div>
+                      <div key={e.id} onClick={ev => openEdit(e, ev)} style={{
+                        marginBottom: '3px', padding: '4px 6px', borderRadius: 'var(--radius-sm)',
+                        borderLeft: `2px solid ${e.color}`, background: e.color + '18',
+                        fontSize: '12px', color: e.color, cursor: 'pointer',
+                      }}>
+                        <div style={{ fontWeight: 600 }}>{e.title}</div>
                         {e.startTime && (
-                          <div className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-                            <Clock size={10} /> {e.startTime}{e.endTime ? ` – ${e.endTime}` : ''}
+                          <div style={{ fontSize: '11px', opacity: 0.7, display: 'flex', alignItems: 'center', gap: '3px', marginTop: '1px' }}>
+                            <Clock size={9} /> {e.startTime}{e.endTime ? `–${e.endTime}` : ''}
                           </div>
                         )}
                       </div>
                     ))}
                     {evs.length === 0 && (
-                      <div className="h-16 border border-dashed border-white/10 rounded-lg flex items-center justify-center">
-                        <Plus size={16} className="text-gray-600" />
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80px', color: 'var(--text-disabled)' }}>
+                        <Plus size={14} />
                       </div>
                     )}
                   </div>
@@ -180,46 +197,61 @@ export default function Calendar({ events, setEvents }: Props) {
 
       {/* Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowForm(false)}>
-          <div className="bg-[#1a1a2e] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-lg">{editing ? 'Edit Event' : `New Event — ${selectedDate ? format(selectedDate, 'MMM d') : ''}`}</h3>
-              <button onClick={() => setShowForm(false)} className="p-1 hover:bg-white/10 rounded-lg"><X size={18} /></button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}
+          onClick={() => setShowForm(false)}>
+          <div style={{ background: 'var(--bg-layer1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px', width: '400px', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 600 }}>{editing ? 'Edit Event' : `New Event${selectedDate ? ' — ' + format(selectedDate, 'MMM d') : ''}`}</span>
+              <button onClick={() => setShowForm(false)} style={{ padding: '3px', cursor: 'pointer', color: 'var(--text-secondary)', border: 'none', background: 'transparent' }}><X size={16} /></button>
             </div>
-            <div className="space-y-3">
-              <input autoFocus value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                placeholder="Event title" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 transition-colors" />
-              <div className="grid grid-cols-2 gap-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={s.label}>Title</label>
+                <input autoFocus value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                  onKeyDown={e => e.key === 'Enter' && save()} style={s.input} placeholder="Event title" />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">Start time</label>
-                  <input type="time" value={form.startTime} onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 outline-none focus:border-indigo-500 transition-colors" />
+                  <label style={s.label}>Start</label>
+                  <input type="time" value={form.startTime} onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))} style={s.input} />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">End time</label>
-                  <input type="time" value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 outline-none focus:border-indigo-500 transition-colors" />
+                  <label style={s.label}>End</label>
+                  <input type="time" value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))} style={s.input} />
                 </div>
               </div>
-              <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                placeholder="Description (optional)" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 transition-colors" />
               <div>
-                <label className="text-xs text-gray-400 mb-2 block">Color</label>
-                <div className="flex gap-2">
+                <label style={s.label}>Description</label>
+                <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} style={s.input} placeholder="Optional" />
+              </div>
+              <div>
+                <label style={s.label}>Color</label>
+                <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
                   {EVENT_COLORS.map(c => (
-                    <button key={c} onClick={() => setForm(f => ({ ...f, color: c }))}
-                      className={`w-7 h-7 rounded-full transition-transform ${form.color === c ? 'scale-125 ring-2 ring-white ring-offset-2 ring-offset-[#1a1a2e]' : 'hover:scale-110'}`}
-                      style={{ backgroundColor: c }} />
+                    <button key={c} onClick={() => setForm(f => ({ ...f, color: c }))} style={{
+                      width: '20px', height: '20px', borderRadius: '50%', background: c, cursor: 'pointer',
+                      border: form.color === c ? '2px solid #fff' : '2px solid transparent',
+                      outline: form.color === c ? `2px solid ${c}` : 'none', outlineOffset: '1px',
+                      transform: form.color === c ? 'scale(1.2)' : 'scale(1)', transition: 'transform 0.1s',
+                    }} />
                   ))}
                 </div>
               </div>
             </div>
-            <div className="flex gap-2 mt-5">
+            <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
               {editing && (
                 <button onClick={() => { deleteEvent(editing.id); setShowForm(false); }}
-                  className="px-4 py-2 bg-red-500/20 text-red-400 rounded-xl hover:bg-red-500/30 transition-colors">Delete</button>
+                  style={{ padding: '6px 14px', fontSize: '13px', border: '1px solid var(--error)', borderRadius: 'var(--radius)', background: 'transparent', color: 'var(--error)', cursor: 'pointer', fontWeight: 500 }}>
+                  Delete
+                </button>
               )}
-              <button onClick={save} className="flex-1 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-xl font-medium transition-colors">
+              <button onClick={() => setShowForm(false)}
+                style={{ flex: 1, padding: '6px 14px', fontSize: '13px', border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button onClick={save}
+                style={{ flex: 2, padding: '6px 14px', fontSize: '13px', border: 'none', borderRadius: 'var(--radius)', background: 'var(--accent)', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>
                 {editing ? 'Save Changes' : 'Add Event'}
               </button>
             </div>

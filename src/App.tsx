@@ -33,52 +33,72 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a] text-white flex flex-col">
-      <header className="border-b border-white/5 px-6 py-4 flex items-center justify-between bg-[#0f0f1a]/80 backdrop-blur-md sticky top-0 z-40">
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
+      {/* Adobe-style top bar */}
+      <header style={{ background: 'var(--bg-layer1)', borderBottom: '1px solid var(--border)' }}
+        className="px-4 h-11 flex items-center justify-between flex-shrink-0 sticky top-0 z-40">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-sm">L</div>
-          <span className="font-bold text-lg tracking-tight">LifeOS</span>
-          <span className="text-sm text-gray-500 hidden sm:block">{format(new Date(), 'EEEE, MMMM d')}</span>
+          {/* Adobe-style product icon */}
+          <div className="w-6 h-6 flex items-center justify-center rounded"
+            style={{ background: 'var(--accent)', fontSize: '11px', fontWeight: 700, letterSpacing: '-0.5px' }}>
+            Lo
+          </div>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>LifeOS</span>
+          <span style={{ width: '1px', height: '16px', background: 'var(--border)', display: 'inline-block', margin: '0 4px' }} />
+          <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{format(new Date(), 'EEEE, MMMM d')}</span>
         </div>
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex items-center gap-3" style={{ fontSize: '12px' }}>
           {todayEvents.length > 0 && (
-            <div className="hidden sm:flex items-center gap-1.5 text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full">
-              <CalendarDays size={12} />
-              {todayEvents.length} today
-            </div>
+            <span style={{ color: 'var(--text-secondary)' }} className="hidden sm:flex items-center gap-1">
+              <CalendarDays size={11} /> {todayEvents.length} event{todayEvents.length !== 1 ? 's' : ''}
+            </span>
           )}
           {activeTasks > 0 && (
-            <div className="hidden sm:flex items-center gap-1.5 text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full">
-              <CheckSquare size={12} />
-              {activeTasks} tasks
-            </div>
+            <span style={{ color: 'var(--text-secondary)' }} className="hidden sm:flex items-center gap-1">
+              <CheckSquare size={11} /> {activeTasks} task{activeTasks !== 1 ? 's' : ''}
+            </span>
           )}
           {todayHabits.total > 0 && (
-            <div className="hidden sm:flex items-center gap-1.5 text-green-400 bg-green-500/10 px-3 py-1 rounded-full">
-              <Flame size={12} />
-              {todayHabits.done}/{todayHabits.total} habits
-            </div>
+            <span style={{ color: 'var(--text-secondary)' }} className="hidden sm:flex items-center gap-1">
+              <Flame size={11} /> {todayHabits.done}/{todayHabits.total} habits
+            </span>
           )}
         </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <nav className="w-16 sm:w-56 flex-shrink-0 border-r border-white/5 py-4 flex flex-col gap-1 px-2">
+        {/* Adobe-style left rail */}
+        <nav className="flex-shrink-0 flex flex-col py-2"
+          style={{ width: '200px', borderRight: '1px solid var(--border)', background: 'var(--bg-layer1)' }}>
+          <div style={{ padding: '4px 8px 8px', fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            Workspace
+          </div>
           {NAV.map(({ id, label, Icon }) => {
             const active = section === id;
             return (
               <button key={id} onClick={() => setSection(id)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all w-full
-                  ${active ? 'bg-indigo-500/20 text-indigo-300' : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'}`}>
-                <Icon size={18} />
-                <span className="hidden sm:block">{label}</span>
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '7px 10px 7px 12px',
+                  fontSize: '13px', fontWeight: active ? 600 : 400,
+                  color: active ? 'var(--accent)' : 'var(--text-secondary)',
+                  background: active ? 'var(--accent-subtle)' : 'transparent',
+                  borderLeft: active ? '2px solid var(--accent)' : '2px solid transparent',
+                  borderRadius: 0, width: '100%', textAlign: 'left', cursor: 'pointer',
+                  transition: 'all 0.1s',
+                }}
+                onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = 'var(--bg-layer2)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; } }}
+                onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; } }}>
+                <Icon size={15} />
+                {label}
               </button>
             );
           })}
         </nav>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
-          <div className="max-w-5xl mx-auto">
+        {/* Main content area */}
+        <main className="flex-1 overflow-y-auto" style={{ background: 'var(--bg-base)' }}>
+          <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '24px' }}>
             {section === 'calendar' && <Calendar events={events} setEvents={setEvents} />}
             {section === 'tasks' && <Tasks tasks={tasks} setTasks={setTasks} />}
             {section === 'gym' && <GymTracker sessions={sessions} setSessions={setSessions} />}

@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { format, subDays, parseISO, isSameDay, startOfWeek, addDays, eachDayOfInterval, subMonths } from 'date-fns';
-import { Plus, X, Check, Flame } from 'lucide-react';
+import { format, subDays, parseISO, isSameDay, eachDayOfInterval } from 'date-fns';
+import { Plus, X, Flame } from 'lucide-react';
 import type { Habit } from '../types';
 import { generateId } from '../store';
 
-const COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444', '#06b6d4'];
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const COLORS = ['#2680eb','#e34850','#e68619','#2d9d78','#8e51c2','#d4380d','#0d7377','#c41d7f'];
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 interface Props {
   habits: Habit[];
@@ -14,20 +14,13 @@ interface Props {
 
 export default function Habits({ habits, setHabits }: Props) {
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', color: COLORS[0], targetDays: [1, 2, 3, 4, 5] as number[] });
+  const [form, setForm] = useState({ name: '', color: COLORS[0], targetDays: [1,2,3,4,5] as number[] });
   const today = new Date();
 
   const addHabit = () => {
     if (!form.name.trim()) return;
-    setHabits(prev => [...prev, {
-      id: generateId(),
-      name: form.name.trim(),
-      color: form.color,
-      targetDays: form.targetDays,
-      completions: [],
-      createdAt: new Date().toISOString(),
-    }]);
-    setForm({ name: '', color: COLORS[0], targetDays: [1, 2, 3, 4, 5] });
+    setHabits(prev => [...prev, { id: generateId(), name: form.name.trim(), color: form.color, targetDays: form.targetDays, completions: [], createdAt: new Date().toISOString() }]);
+    setForm({ name: '', color: COLORS[0], targetDays: [1,2,3,4,5] });
     setShowForm(false);
   };
 
@@ -40,134 +33,147 @@ export default function Habits({ habits, setHabits }: Props) {
     }));
   };
 
-  const isComplete = (habit: Habit, date: Date) => habit.completions.includes(format(date, 'yyyy-MM-dd'));
+  const isComplete = (h: Habit, d: Date) => h.completions.includes(format(d, 'yyyy-MM-dd'));
 
   const streak = (habit: Habit) => {
     let count = 0;
     let d = today;
-    while (true) {
-      const dayOfWeek = d.getDay();
-      if (habit.targetDays.includes(dayOfWeek)) {
+    for (let i = 0; i < 366; i++) {
+      const dow = d.getDay();
+      if (habit.targetDays.includes(dow)) {
         if (!habit.completions.includes(format(d, 'yyyy-MM-dd'))) break;
         count++;
       }
       d = subDays(d, 1);
-      if (count > 365) break;
     }
     return count;
   };
 
-  // 7-day grid for each habit
   const last7 = Array.from({ length: 7 }, (_, i) => subDays(today, 6 - i));
-
-  // 90-day heatmap
   const last90 = eachDayOfInterval({ start: subDays(today, 89), end: today });
 
+  const inp: React.CSSProperties = { background: 'var(--bg-layer2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '6px 10px', color: 'var(--text-primary)', outline: 'none', fontSize: '13px', width: '100%' };
+  const lbl: React.CSSProperties = { fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '4px', display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 };
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Habit Tracker</h2>
-        <button onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-xl text-sm font-medium transition-colors">
-          <Plus size={16} /> New Habit
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: '16px', fontWeight: 600 }}>Habit Tracker</div>
+          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>{format(today, 'EEEE, MMMM d')}</div>
+        </div>
+        <button onClick={() => setShowForm(!showForm)} style={{ padding: '5px 12px', fontSize: '12px', fontWeight: 600, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 'var(--radius)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <Plus size={13} /> New Habit
         </button>
       </div>
 
+      {/* Add form */}
       {showForm && (
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
-          <input autoFocus value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-            onKeyDown={e => e.key === 'Enter' && addHabit()}
-            placeholder="Habit name (e.g. 'Morning run', 'Read 30 min')" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 transition-colors" />
+        <div style={{ border: '1px solid var(--border-focus)', borderRadius: 'var(--radius)', background: 'var(--bg-layer1)', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <input autoFocus value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addHabit()} style={inp} placeholder="Habit name (e.g. Morning run, Read 30 min)" />
           <div>
-            <label className="text-xs text-gray-400 mb-2 block">Target days</label>
-            <div className="flex gap-2">
+            <label style={lbl}>Target Days</label>
+            <div style={{ display: 'flex', gap: '4px' }}>
               {DAYS.map((day, i) => (
-                <button key={day} onClick={() => setForm(f => ({
-                  ...f, targetDays: f.targetDays.includes(i) ? f.targetDays.filter(d => d !== i) : [...f.targetDays, i]
-                }))}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${form.targetDays.includes(i) ? 'bg-indigo-500' : 'bg-white/5 hover:bg-white/10'}`}>
-                  {day}
-                </button>
+                <button key={day} onClick={() => setForm(f => ({ ...f, targetDays: f.targetDays.includes(i) ? f.targetDays.filter(d => d !== i) : [...f.targetDays, i] }))} style={{
+                  padding: '4px 9px', fontSize: '11px', cursor: 'pointer', borderRadius: 'var(--radius)',
+                  border: '1px solid var(--border)', fontWeight: form.targetDays.includes(i) ? 600 : 400,
+                  background: form.targetDays.includes(i) ? 'var(--accent)' : 'var(--bg-layer2)',
+                  color: form.targetDays.includes(i) ? '#fff' : 'var(--text-secondary)',
+                }}>{day}</button>
               ))}
             </div>
           </div>
           <div>
-            <label className="text-xs text-gray-400 mb-2 block">Color</label>
-            <div className="flex gap-2">
+            <label style={lbl}>Color</label>
+            <div style={{ display: 'flex', gap: '6px' }}>
               {COLORS.map(c => (
-                <button key={c} onClick={() => setForm(f => ({ ...f, color: c }))}
-                  className={`w-7 h-7 rounded-full transition-transform ${form.color === c ? 'scale-125 ring-2 ring-white ring-offset-2 ring-offset-[#1a1a2e]' : 'hover:scale-110'}`}
-                  style={{ backgroundColor: c }} />
+                <button key={c} onClick={() => setForm(f => ({ ...f, color: c }))} style={{
+                  width: '18px', height: '18px', borderRadius: '50%', background: c, cursor: 'pointer',
+                  border: form.color === c ? '2px solid #fff' : '2px solid transparent',
+                  outline: form.color === c ? `2px solid ${c}` : 'none', outlineOffset: '1px',
+                  transform: form.color === c ? 'scale(1.25)' : 'scale(1)', transition: 'transform 0.1s',
+                }} />
               ))}
             </div>
           </div>
-          <div className="flex gap-2">
-            <button onClick={addHabit} className="flex-1 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-xl text-sm font-medium transition-colors">Add Habit</button>
-            <button onClick={() => setShowForm(false)} className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-sm transition-colors">Cancel</button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={addHabit} style={{ flex: 1, padding: '6px', fontSize: '13px', fontWeight: 600, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 'var(--radius)', cursor: 'pointer' }}>Add Habit</button>
+            <button onClick={() => setShowForm(false)} style={{ padding: '6px 14px', fontSize: '13px', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', cursor: 'pointer' }}>Cancel</button>
           </div>
         </div>
       )}
 
-      {/* Day headers */}
+      {/* Column headers */}
       {habits.length > 0 && (
-        <div className="grid grid-cols-[1fr_repeat(7,2.5rem)_3rem_1.5rem] gap-2 items-center px-1">
-          <span className="text-xs text-gray-500">Habit</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr repeat(7, 36px) 48px 20px', gap: '4px', alignItems: 'center', padding: '0 2px' }}>
+          <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Habit</span>
           {last7.map(d => (
-            <span key={d.toISOString()} className={`text-center text-xs font-medium ${isSameDay(d, today) ? 'text-indigo-400' : 'text-gray-500'}`}>
-              <div>{format(d, 'EEE')}</div>
-              <div>{format(d, 'd')}</div>
-            </span>
+            <div key={d.toISOString()} style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '9px', fontWeight: 600, color: isSameDay(d, today) ? 'var(--accent)' : 'var(--text-tertiary)', textTransform: 'uppercase' }}>{format(d, 'EEE')}</div>
+              <div style={{ fontSize: '11px', color: isSameDay(d, today) ? 'var(--accent)' : 'var(--text-secondary)' }}>{format(d, 'd')}</div>
+            </div>
           ))}
-          <span className="text-xs text-gray-500 text-center">🔥</span>
-          <span></span>
+          <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', textAlign: 'center', letterSpacing: '0.06em' }}>Streak</div>
+          <span />
         </div>
       )}
 
       {habits.length === 0 && (
-        <div className="text-center py-16 text-gray-500">Build your first habit above!</div>
+        <div style={{ padding: '64px', textAlign: 'center', color: 'var(--text-disabled)', fontSize: '13px', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+          Build your first habit above
+        </div>
       )}
 
+      {/* Habit rows */}
       {habits.map(habit => {
         const s = streak(habit);
         return (
-          <div key={habit.id} className="bg-white/5 border border-white/10 rounded-2xl p-3 group">
-            <div className="grid grid-cols-[1fr_repeat(7,2.5rem)_3rem_1.5rem] gap-2 items-center">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: habit.color }} />
-                <span className="text-sm font-medium truncate">{habit.name}</span>
+          <div key={habit.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: 'var(--bg-layer1)', overflow: 'hidden' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr repeat(7, 36px) 48px 20px', gap: '4px', alignItems: 'center', padding: '10px 12px' }}>
+              {/* Name */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: habit.color, flexShrink: 0 }} />
+                <span style={{ fontSize: '13px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{habit.name}</span>
               </div>
+              {/* Day buttons */}
               {last7.map(d => {
                 const isTarget = habit.targetDays.includes(d.getDay());
                 const done = isComplete(habit, d);
                 return (
-                  <button key={d.toISOString()} onClick={() => isTarget && toggleDay(habit.id, d)}
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all mx-auto
-                      ${!isTarget ? 'opacity-20 cursor-default bg-white/5' :
-                        done ? 'scale-105 shadow-lg' : 'bg-white/5 hover:bg-white/10'}`}
-                    style={done ? { backgroundColor: habit.color + '33', border: `2px solid ${habit.color}` } : {}}>
-                    {done ? <Check size={14} style={{ color: habit.color }} /> : isTarget ? <span className="text-gray-600">·</span> : null}
+                  <button key={d.toISOString()} onClick={() => isTarget && toggleDay(habit.id, d)} style={{
+                    width: '32px', height: '32px', borderRadius: 'var(--radius)', border: `1px solid ${done ? habit.color : isTarget ? 'var(--border)' : 'var(--border-subtle)'}`,
+                    background: done ? habit.color + '33' : 'transparent',
+                    cursor: isTarget ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '12px', margin: '0 auto',
+                  }}>
+                    {done ? <span style={{ color: habit.color, fontWeight: 700, fontSize: '13px' }}>✓</span> : isTarget ? <span style={{ color: 'var(--border)', fontSize: '16px', lineHeight: 1 }}>·</span> : null}
                   </button>
                 );
               })}
-              <div className="flex items-center justify-center gap-1">
-                {s > 0 && <Flame size={14} className="text-amber-400" />}
-                <span className={`text-sm font-bold ${s > 0 ? 'text-amber-400' : 'text-gray-600'}`}>{s}</span>
+              {/* Streak */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                {s > 0 && <Flame size={12} style={{ color: 'var(--warning)', flexShrink: 0 }} />}
+                <span style={{ fontSize: '13px', fontWeight: 600, color: s > 0 ? 'var(--warning)' : 'var(--text-disabled)' }}>{s}</span>
               </div>
-              <button onClick={() => setHabits(prev => prev.filter(h => h.id !== habit.id))}
-                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/20 rounded-lg transition-all mx-auto">
-                <X size={12} className="text-red-400" />
+              {/* Delete */}
+              <button onClick={() => setHabits(prev => prev.filter(h => h.id !== habit.id))} style={{ background: 'transparent', border: 'none', color: 'var(--text-disabled)', cursor: 'pointer', padding: '2px', display: 'flex' }}>
+                <X size={12} />
               </button>
             </div>
 
             {/* 90-day heatmap */}
-            <div className="mt-3 flex flex-wrap gap-0.5">
+            <div style={{ padding: '0 12px 10px', display: 'flex', flexWrap: 'wrap', gap: '2px' }}>
               {last90.map(d => {
                 const isTarget = habit.targetDays.includes(d.getDay());
                 const done = isComplete(habit, d);
                 return (
-                  <div key={d.toISOString()} title={format(d, 'MMM d')}
-                    className={`w-2.5 h-2.5 rounded-sm transition-all ${!isTarget ? 'bg-white/5' : done ? '' : 'bg-white/10'}`}
-                    style={done ? { backgroundColor: habit.color + '99' } : {}} />
+                  <div key={d.toISOString()} title={format(d, 'MMM d')} style={{
+                    width: '9px', height: '9px', borderRadius: '1px',
+                    background: done ? habit.color + 'bb' : isTarget ? 'var(--bg-layer2)' : 'transparent',
+                    border: isTarget ? `1px solid var(--border-subtle)` : 'none',
+                  }} />
                 );
               })}
             </div>
